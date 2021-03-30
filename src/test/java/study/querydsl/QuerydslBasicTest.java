@@ -2,6 +2,7 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
@@ -563,8 +565,12 @@ public class QuerydslBasicTest {
 
     @Test
     public void findUserDto(){
-        List<MemberDto> result = queryFactory.select(Projections.constructor(MemberDto.class, member.username.as("name"), member.age
-        )).from(member).fetch();
+        QMember memberSub = new QMember("memberSub");
+        List<UserDto> result = queryFactory.select(Projections.fields(UserDto.class
+                , member.username.as("name")
+                , ExpressionUtils.as(select(memberSub.age.max()).from(memberSub), "age") //다 최대인 40살로 찍고싶은 경우
+        ))
+                .from(member).fetch();
 
     }
 
