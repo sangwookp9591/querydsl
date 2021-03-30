@@ -2,7 +2,9 @@ package study.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.assertj.core.api.Assertions;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import study.querydsl.dto.MemberDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.QTeam;
@@ -431,7 +434,7 @@ public class QuerydslBasicTest {
         }
 
     }
-
+    //단순한 case
     @Test
     public void basicCase(){
         List<String> result = queryFactory.select(
@@ -446,7 +449,7 @@ public class QuerydslBasicTest {
 
         }
     }
-
+    //복잡한 case
     @Test
     public void complexCase(){
         List<String> result = queryFactory
@@ -458,6 +461,110 @@ public class QuerydslBasicTest {
         for (String s : result) {
             System.out.println("s = " + s);
         }
+
+    }
+
+    //상수가 필요할 때
+    @Test
+    public void constant(){
+        List<Tuple> result = queryFactory.select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+
+    }
+
+    //문자열 합치기
+    @Test
+    public void concat(){
+        //queryFactory.select(member.username.concat("_").concat(member.age))
+
+        //이건 안된다. 왜냐하면 타입이다르다 concat은 문자만 되기 때문이다.
+
+        //원하는 결과
+        //{username}_{age}
+        List<String> result = queryFactory.select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetch();
+
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void simpleProjection(){
+        List<String> result = queryFactory.select(member.username).from(member).fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void tupleProjection() {
+        List<Tuple> fetch = queryFactory.select(member.username, member.age).from(member).fetch();
+
+
+        for (Tuple tuple : fetch) {
+            String username = tuple.get(member.username);
+            Integer age = tuple.get(member.age);
+            System.out.println("age = " + age);
+            System.out.println("username = " + username);
+        }
+    }
+
+    @Test
+    public void findDtoByJPQL(){
+        //이렇게 하면 타입이 안맞아서 안된다.
+        // .em.createQuery("select m from Member  m", MemberDto.class);
+
+        //jpql에서 제공하는 new operation 사용
+        List<MemberDto> resultList = em.createQuery("select new study.querydsl.dto.MemberDto(m.username,m.age) from Member m", MemberDto.class)
+                .getResultList();
+
+        for (MemberDto memberDto : resultList) {
+
+            System.out.println("memberDto = " + memberDto);
+
+        }
+    }
+
+    @Test
+    public void findBySetter(){
+        queryFactory
+                .select(Projections.bean(MemberDto.class,member.username,member.age))
+                .from(member)
+                .fetch(); //bean은 setter로 데이터를 injection 해줌
+    }
+
+    @Test //getter , setter 필요없다. 바로 필드에다가 값을 넣어버림
+    public void findByField(){
+        queryFactory
+                .select(Projections.fields(MemberDto.class,member.username,member.age))
+                .from(member)
+                .fetch();
+    }
+
+    @Test
+    public void findDtoByConstructor(){
+        List<MemberDto> result = queryFactory.select(Projections.constructor(MemberDto.class, member.username, member.age
+        )).from(member).fetch();
+        for(MemberDto memberDto : result){
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+
+    @Test
+    public void findUserDto(){
+        List<MemberDto> result = queryFactory.select(Projections.constructor(MemberDto.class, member.username.as("name"), member.age
+        )).from(member).fetch();
 
     }
 
