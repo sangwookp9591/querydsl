@@ -704,4 +704,31 @@ public class QuerydslBasicTest {
         queryFactory.delete(member)
                 .where(member.age.gt(18)).execute();
     }
+
+    @Test
+    public void sqlFunction(){
+        List<String> result = queryFactory.select(Expressions.stringTemplate(
+                "function('replace',{0},{1},{2})",
+                member.username, "member", "M"))
+                .from(member)
+                .fetch();// 조회를 할건데 Member라는 단어를 M으로 바꿔서 출력
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+
+    @Test
+    public void sqlFunction2(){
+        List<String> result = queryFactory.select(member.username)
+                .from(member)
+                //.where(member.username.eq(Expressions.stringTemplate("function('lower',{0})",member.username)))
+                .where(member.username.eq(member.username.lower()))
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+
+
+    }
 }
